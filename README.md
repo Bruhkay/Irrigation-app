@@ -1,1 +1,2 @@
 # Irrigation-app
+I built this irrigation system to water my lovely bonsai plant when im outside of the city for days. You can use this project by building a firebase database and watching my path. The equipments (ESP8266, sensor, relay and motor) cost approximately 8-10$

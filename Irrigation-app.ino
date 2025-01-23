@@ -1,4 +1,3 @@
-
 #include <ESP8266WiFi.h>
 #include <Firebase_ESP_Client.h>
 
@@ -8,7 +7,7 @@
 
 // Firebase configuration
 #define FIREBASE_HOST "https://irrigation-app-502f4-default-rtdb.firebaseio.com/"// paste your full URL with "https://"
-#define FIREBASE_AUTH "" // paste your own code
+#define FIREBASE_AUTH "" // paste your own code here
 
 // Firebase objects
 FirebaseData firebaseData;
@@ -37,12 +36,17 @@ void setup() {
   config.signer.tokens.legacy_token = FIREBASE_AUTH;
   // Initialize Firebase
   Firebase.begin(&config, &auth);
+
+  if(FIREBASE_AUTH==""){
+    Serial.println("FILL FIREBASE CODE NAMED \"FIREBASE_AUTH\" ");
+  }
 }
 
 void loop() {
   // Calculate soil humidity percentage
   percentage = ((1024.0 - float(analogRead(prob))) / 1024.0) * 100;
-  //update the percentage on the cloud
+  
+  //Communication with the cloud
   if(Firebase.RTDB.getString(&firebaseData, "/water")){
     String data = firebaseData.stringData();
         
@@ -64,9 +68,9 @@ void loop() {
     Serial.println("Failed to read data from Firebase.");
   }
 
+  // Watering condition
   if ((percentage <= 40 && percentage > 1 ) || (water == "true")) {
-    // Watering condition
-
+    
     if (Firebase.RTDB.setString(&firebaseData, "/water", "true")) {
       Serial.println("Parameter updated.");
     } else {
@@ -86,6 +90,7 @@ void loop() {
   }else{
     digitalWrite(motor, HIGH);
   }
+
   delay(16000);
 }
 

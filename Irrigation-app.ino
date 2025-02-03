@@ -42,6 +42,75 @@ void setup() {
   }
 }
 
+
+unsigned long previousMillis = 0;
+unsigned long wateringStartMillis = 0;
+const long readInterval = 2000;  // Interval for reading sensor data (16s)
+const long wateringDuration = 10000;  // Watering duration (10s)
+
+void loop() {
+    unsigned long currentMillis = millis();
+
+    // Read sensor and update Firebase at intervals
+    if (currentMillis - previousMillis >= readInterval) {
+      previousMillis = currentMillis;
+      
+      // Calculate soil humidity percentage
+      float percentage = ((1024.0 - float(analogRead(prob))) / 1024.0) * 100;
+      
+      // Communication with the cloud
+      if (Firebase.RTDB.getString(&firebaseData, "/water")) {
+        String data = firebaseData.stringData();
+        
+        if(data == "false"){
+          water = "false";
+        }else{
+          water = "true";
+        }
+        
+        if (Firebase.RTDB.setString(&firebaseData, "/percentage", String(percentage))) {
+            Serial.println("Percentage parameter updated.");
+        } else {
+            Serial.println("Failed to update percentage parameter.");
+        }
+        Serial.println("\nWater data obtained: " + data + ".");
+        Serial.println("Percentage: " + String(percentage));
+      } 
+      else {
+          Serial.println("Failed to read data from Firebase.");
+      }
+      
+      // Watering condition
+      if ((percentage <= 40 && percentage > 1) || water == "true") {
+        water = "true";
+        wateringStartMillis = currentMillis;
+        
+        if (Firebase.RTDB.setString(&firebaseData, "/water", "true")) {
+            Serial.println("Watering started.");
+        } else {
+            Serial.println("Failed to update water parameter.");
+        }
+        digitalWrite(motor, LOW);
+      }
+    }
+    
+    // Stop watering after duration
+    if (water == "false" || (currentMillis - wateringStartMillis >= wateringDuration)) {
+      water = "false";
+      
+      if (Firebase.RTDB.setString(&firebaseData, "/water", "false")) {
+          Serial.println("Watering stopped.");
+      } else {
+          Serial.println("Failed to update water parameter.");
+      }
+      digitalWrite(motor, HIGH);
+    }
+}
+
+
+
+//with using delay() func
+/*
 void loop() {
   // Calculate soil humidity percentage
   percentage = ((1024.0 - float(analogRead(prob))) / 1024.0) * 100;
@@ -93,6 +162,7 @@ void loop() {
 
   delay(16000);
 }
+*/
 
 void connectToWiFi() {
   WiFi.mode(WIFI_STA);
